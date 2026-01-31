@@ -34,7 +34,7 @@ load_dotenv()
 # -----------------------------
 # True  => show all tabs (admin / full UI)
 # False => driver-only (only /mission, no visible tabs, other pages redirect)
-CONFIG_SHOW_ALL_TABS: bool = True
+CONFIG_SHOW_ALL_TABS: bool = False
 
 # -----------------------------
 # Driver-only helpers (authoritative)
@@ -2189,7 +2189,7 @@ def _run():
     except Exception:
         print("uvicorn manquant. Installe requirements.txt puis relance.")
         raise
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
 
 
 if __name__ == "__main__":
