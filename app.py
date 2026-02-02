@@ -9,6 +9,8 @@
 # - Route tab groups by SHUTTLE (navette) instead of run.
 # - Runs are still used internally to compute missions, but display is per shuttle, sorted by mission time.
 
+from urllib.parse import quote
+
 ROUTE_SETTINGS_URLS = ["https://milla-sqy.millaapp.fr/api/v1/reservation/shuttle-route-settings/all"]
 
 import os
@@ -34,15 +36,7 @@ load_dotenv()
 # -----------------------------
 # True  => show all tabs (admin / full UI)
 # False => driver-only (only /mission, no visible tabs, other pages redirect)
-CONFIG_SHOW_ALL_TABS: bool = False
-
-# Anti-cache headers (important on Railway/proxies)
-NO_CACHE_HEADERS = {
-    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-    "Pragma": "no-cache",
-    "Expires": "0",
-}
-
+CONFIG_SHOW_ALL_TABS: bool = True
 
 # -----------------------------
 # Driver-only helpers (authoritative)
@@ -164,6 +158,7 @@ def _norm_excel(name: str) -> str:
 #
 # Returned dict key: (norm(depart), norm(dest)) -> minutes (int)
 _TRAVEL_MINUTES: Dict[Tuple[str, str], int] = {}
+_TRAVEL_LINKS: Dict[Tuple[str, str], str] = {}
 _ETA_DEBUG_MISS: int = 0
 _ETA_DEBUG_MAX_MISS: int = 25
 
@@ -201,12 +196,12 @@ def _to_int_minutes(v: Any) -> Optional[int]:
     except Exception:
         return None
 
-def load_travel_minutes_from_excel() -> Tuple[Dict[Tuple[str, str], int], Optional[str]]:
+def load_travel_minutes_from_excel() -> Tuple[Dict[Tuple[str, str], int], Dict[Tuple[str, str], str], Optional[str]]:
     path = _find_excel_in_cwd()
     if not path:
-        return {}, "Aucun fichier .xlsx trouvé dans le dossier courant (pour matrice temps)."
+        return {}, {}, "Aucun fichier .xlsx trouvé dans le dossier courant (pour matrice temps)."
     try:
-        wb = load_workbook(path, data_only=True, read_only=True)
+        wb = load_workbook(path, data_only=True, read_only=False)
     except Exception as e:
         return {}, f"Impossible d'ouvrir le fichier Excel '{os.path.basename(path)}': {e}"
 
@@ -232,16 +227,47 @@ def load_travel_minutes_from_excel() -> Tuple[Dict[Tuple[str, str], int], Option
         dest_cols.append((c, str(val).strip()))
 
     table: Dict[Tuple[str, str], int] = {}
+    table_links: Dict[Tuple[str, str], str] = {}
     for r, dep in dep_names:
         dep_n = _norm_excel(dep)
         for c, dst in dest_cols:
             dst_n = _norm_excel(dst)
-            minutes = _to_int_minutes(ws.cell(row=r, column=c).value)
+            cell = ws.cell(row=r, column=c)
+            minutes = _to_int_minutes(cell.value)
             if minutes is None:
                 continue
             table[(dep_n, dst_n)] = minutes
+            # Hyperlink support (optional): store URL for A->B if present
+            try:
+                if cell.hyperlink and cell.hyperlink.target:
+                    table_links[(dep_n, dst_n)] = str(cell.hyperlink.target)
+            except Exception:
+                pass
 
-    return table, None
+    return table, table_links, None
+
+
+
+def _build_maps_link_from_current(destination_name: str, dest_lat: Any = None, dest_lon: Any = None) -> Optional[str]:
+    """Build a Google Maps directions link that uses device current location as origin.
+    If coordinates are provided, use them; otherwise fallback to destination name.
+    """
+    try:
+        if dest_lat is not None and dest_lon is not None:
+            return f"https://www.google.com/maps/dir/?api=1&destination={dest_lat},{dest_lon}&travelmode=driving"
+        dn = (destination_name or '').strip()
+        if not dn:
+            return None
+        return "https://www.google.com/maps/dir/?api=1&destination=" + quote(dn) + "&travelmode=driving"
+    except Exception:
+        return None
+
+def get_travel_link(dep: str, dst: str) -> Optional[str]:
+    if not dep or not dst:
+        return None
+    dep_n = _norm_excel(dep)
+    dst_n = _norm_excel(dst)
+    return _TRAVEL_LINKS.get((dep_n, dst_n))
 
 def get_travel_minutes(dep: str, dst: str) -> Optional[int]:
     if not dep or not dst:
@@ -300,7 +326,7 @@ def shuttle_label(shuttle_id: Any) -> str:
 
 # Load travel-time matrix once (best effort)
 try:
-    _TRAVEL_MINUTES, _tm_err = load_travel_minutes_from_excel()
+    _TRAVEL_MINUTES, _TRAVEL_LINKS, _tm_err = load_travel_minutes_from_excel()
     if _tm_err:
         print("[WARN] Matrice Excel temps non chargée:", _tm_err)
     if not _TRAVEL_MINUTES:
@@ -940,6 +966,14 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       /* Objectifs: bold (driver + admin) */
       .objwrap, .objwrap * { font-weight: 700; }
 
+      /* Route link pin next to destination */
+      .routepin { margin-left:6px; text-decoration:none; display:inline-flex; align-items:center; }
+      .routepin span {
+        line-height:1;
+        font-size:18px;
+        vertical-align: middle;
+        }
+
       /* ETA: keep icon + text on one line (robust) */
       .pill-eta { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-wrap:nowrap; }
       .pill-eta > * { display:inline-block; vertical-align:middle; line-height:1; }
@@ -1494,6 +1528,8 @@ def build_route_missions_by_shuttle(*, day: str, resa_rows: List[Dict[str, Any]]
             "heure_min": pre_start_m,
             "from": "Repositionnement",
             "to": meta["terminus"],
+            "stop_lat": meta.get("terminus_lat"),
+            "stop_lon": meta.get("terminus_lon"),
             "pickup": pu0,
             "dropoff": do0,
             "pickup_pins": pu_pins0,
@@ -2046,9 +2082,6 @@ def page_mission(
       table{ width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; }
       thead th{ background:#0f172a; color:#fff; font-size:13px; padding:12px 14px; border-bottom:0; }
       tbody td{ padding:14px; border-bottom:1px solid rgba(16,24,40,.08); font-size:13.5px; background:#fff; }
-      th.objcol{ padding-left:14px; }
-      tbody td.objcol{ padding-left:2px; }
-
       tbody tr:last-child td{ border-bottom:0; }
       .col-heure{ width:120px; font-weight:900; }
       .dest strong{ font-weight:900; }
@@ -2127,6 +2160,17 @@ def page_mission(
 
             dst = str(m.get('to','') or '').strip()
             dst_html = html.escape(dst)
+            # Optional route hyperlink (from Excel matrix): dep -> dst
+            link = None
+            is_pre = bool(m.get('is_pre_service', False))
+            if not is_pre:
+                link = get_travel_link(dep, dst)
+            else:
+                # Pre-service reposition: use current location as origin and destination as the stop
+                link = _build_maps_link_from_current(dst, m.get('stop_lat'), m.get('stop_lon'))
+            pin_html = ""
+            if link:
+                pin_html = f"<a class='routepin' href='{html.escape(link)}' target='_blank' rel='noopener' title='Ouvrir itinéraire'><span>📍</span></a>"
 
             pu = int(m.get('pickup', 0) or 0)
             do = int(m.get('dropoff', 0) or 0)
@@ -2163,8 +2207,8 @@ def page_mission(
               <tr>
                 <td class='col-heure'>{hhmm}</td>
                 <td>{dep_html}</td>
-                <td class='dest'><strong>{dst_html}</strong></td>
-                <td class='objcol'><div class='objwrap'>{''.join(pills)}</div></td>
+                <td class='dest'><strong>{dst_html}</strong>{pin_html}</td>
+                <td><div class='objwrap'>{''.join(pills)}</div></td>
               </tr>
             """)
 
@@ -2177,7 +2221,7 @@ def page_mission(
           </div>
           <table>
             <thead>
-              <tr><th>Heure</th><th>Départ</th><th>Destination</th><th class='objcol'>Objectifs</th></tr>
+              <tr><th>Heure</th><th>Départ</th><th>Destination</th><th>Objectifs</th></tr>
             </thead>
             <tbody>{''.join(rows)}</tbody>
           </table>
