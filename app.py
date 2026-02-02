@@ -967,15 +967,27 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       .objwrap, .objwrap * { font-weight: 700; }
 
       /* Route link pin next to destination */
-      .destline { display:inline-flex; align-items:center; gap:6px; flex-wrap:nowrap; }
-      .routepin { margin-left:0; text-decoration:none; display:inline-flex; align-items:center; flex:0 0 auto; white-space:nowrap; }
-      .routepin span { display:inline-block; line-height:1; font-size:18px; transform: translateY(-1px); }
+      .routepin { margin-left:6px; text-decoration:none; display:inline-flex; align-items:center; }
+      .routepin span {
+        line-height:1;
+        font-size:18px;
+        vertical-align: middle;
+        }
+
+      /* INLINE FIX: keep pin + ETA on one line (emoji baseline quirks) */
+      .destline { display:inline-flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap; }
+      .destline strong { display:inline; }
+      .routepin { display:inline-flex; align-items:center; flex-wrap:nowrap; white-space:nowrap; }
+      .routepin span { line-height:1; display:inline-block; vertical-align:middle; }
+      .pill, .pill * { white-space:nowrap; }
+      .pill { display:inline-flex; align-items:center; gap:8px; }
+      .pill .ico { display:inline-flex; align-items:center; }
+      .pill .txt { display:inline; }
+
 
       /* ETA: keep icon + text on one line (robust) */
       .pill-eta { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-wrap:nowrap; }
       .pill-eta > * { display:inline-block; vertical-align:middle; line-height:1; }
-      .pill-eta .ico { display:inline-flex; align-items:center; }
-      .pill-eta .ico svg { display:block; }
 </style>
     """
     poll_ms = int(CONFIG.get("web", {}).get("poll_state_ms", 1000))
@@ -2200,7 +2212,7 @@ def page_mission(
                     eta_txt = add_minutes_to_hhmmss(start_h, int(minutes))
 
             if eta_txt:
-                pills.append(f"<span class='pill pill-eta'><span class='ico'>{icon_clock}</span><span class='txt'>ETA : {html.escape(eta_txt)}</span></span>")
+                pills.append(f"<span class='pill pill-eta'>{icon_clock} ETA : {html.escape(eta_txt)}</span>")
 
             rows.append(f"""
               <tr>
@@ -2245,3 +2257,4 @@ def _run():
 
 if __name__ == "__main__":
     _run()
+
