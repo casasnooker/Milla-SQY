@@ -36,7 +36,7 @@ load_dotenv()
 # -----------------------------
 # True  => show all tabs (admin / full UI)
 # False => driver-only (only /mission, no visible tabs, other pages redirect)
-CONFIG_SHOW_ALL_TABS: bool = False
+CONFIG_SHOW_ALL_TABS: bool = True
 
 # -----------------------------
 # Driver-only helpers (authoritative)
@@ -967,16 +967,15 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       .objwrap, .objwrap * { font-weight: 700; }
 
       /* Route link pin next to destination */
-      .routepin { margin-left:6px; text-decoration:none; display:inline-flex; align-items:center; }
-      .routepin span {
-        line-height:1;
-        font-size:18px;
-        vertical-align: middle;
-        }
+      .destline { display:inline-flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+      .routepin { margin-left:0; text-decoration:none; display:inline-flex; align-items:center; flex:0 0 auto; white-space:nowrap; }
+      .routepin span { display:inline-block; line-height:1; font-size:18px; transform: translateY(-1px); }
 
       /* ETA: keep icon + text on one line (robust) */
       .pill-eta { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-wrap:nowrap; }
       .pill-eta > * { display:inline-block; vertical-align:middle; line-height:1; }
+      .pill-eta .ico { display:inline-flex; align-items:center; }
+      .pill-eta .ico svg { display:block; }
 </style>
     """
     poll_ms = int(CONFIG.get("web", {}).get("poll_state_ms", 1000))
@@ -2201,13 +2200,13 @@ def page_mission(
                     eta_txt = add_minutes_to_hhmmss(start_h, int(minutes))
 
             if eta_txt:
-                pills.append(f"<span class='pill pill-eta'>{icon_clock} ETA : {html.escape(eta_txt)}</span>")
+                pills.append(f"<span class='pill pill-eta'><span class='ico'>{icon_clock}</span><span class='txt'>ETA : {html.escape(eta_txt)}</span></span>")
 
             rows.append(f"""
               <tr>
                 <td class='col-heure'>{hhmm}</td>
                 <td>{dep_html}</td>
-                <td class='dest'><strong>{dst_html}</strong>{pin_html}</td>
+                <td class='dest'><span class='destline'><strong>{dst_html}</strong>{pin_html}</span></td>
                 <td><div class='objwrap'>{''.join(pills)}</div></td>
               </tr>
             """)
@@ -2246,4 +2245,3 @@ def _run():
 
 if __name__ == "__main__":
     _run()
-
