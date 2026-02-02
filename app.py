@@ -34,7 +34,15 @@ load_dotenv()
 # -----------------------------
 # True  => show all tabs (admin / full UI)
 # False => driver-only (only /mission, no visible tabs, other pages redirect)
-CONFIG_SHOW_ALL_TABS: bool = False
+CONFIG_SHOW_ALL_TABS: bool = True
+
+# Anti-cache headers (important on Railway/proxies)
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
 
 # -----------------------------
 # Driver-only helpers (authoritative)
@@ -2189,7 +2197,7 @@ def _run():
     except Exception:
         print("uvicorn manquant. Installe requirements.txt puis relance.")
         raise
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    uvicorn.run(app, host="127.0.0.1", port=port, log_level="info")
 
 
 if __name__ == "__main__":
