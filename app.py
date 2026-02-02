@@ -34,7 +34,7 @@ load_dotenv()
 # -----------------------------
 # True  => show all tabs (admin / full UI)
 # False => driver-only (only /mission, no visible tabs, other pages redirect)
-CONFIG_SHOW_ALL_TABS: bool = True
+CONFIG_SHOW_ALL_TABS: bool = False
 
 # Anti-cache headers (important on Railway/proxies)
 NO_CACHE_HEADERS = {
