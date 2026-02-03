@@ -940,24 +940,24 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       .card input { padding:8px 10px; border-radius:10px; border:1px solid #ddd; min-width: 170px; }
       .card button { padding:9px 12px; border-radius:12px; border:1px solid #111; background:#111; color:#fff; cursor:pointer; }
       table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-      /* Mission table layout: bring Destination closer and give more room to Objectifs */
+      /* Mission table layout (A): tighten Départ/Destination, keep Objectifs on one line */
       table.missiontbl { table-layout: fixed; width: 100%; }
       table.missiontbl th, table.missiontbl td { vertical-align: middle; }
       table.missiontbl th:nth-child(1), table.missiontbl td:nth-child(1) { width: 90px; }
-      table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2) { width: 28%; padding-right: 8px; }
-      table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3) { width: 28%; padding-left: 8px; }
-      table.missiontbl th:nth-child(4), table.missiontbl td:nth-child(4) { width: auto; }
-      /* Keep ETA/Repositionnement pills on one line */
-      table.missiontbl td:nth-child(4), table.missiontbl td:nth-child(4) * { white-space: nowrap; }
-
-      th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertical-align: top; }
+      table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2) { width: 24%; padding-right: 6px; }
+      table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3) { width: 24%; padding-left: 6px; }
+      table.missiontbl th:nth-child(4), table.missiontbl td:nth-child(4) { width: auto; padding-left: 10px; }
+      /* Keep ALL objective pills on one line; allow horizontal scroll if needed */
+      table.missiontbl td:nth-child(4) { white-space: nowrap; overflow-x: auto; }
+      table.missiontbl td:nth-child(4)::-webkit-scrollbar { height: 8px; }
+th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertical-align: top; }
       th { background: #f3f3f3; font-size: 13px; }
       td { font-size: 13px; }
       .err { color:#b00020; font-weight:700; margin-top: 12px; }
       .muted { color:#666; font-size: 12px; }
       .group { border:1px solid #eee; border-radius:16px; padding:12px; margin: 12px 0; background:#fff; }
       .group h3 { margin: 0 0 8px 0; font-size: 15px; }
-      .pill { display:inline-block; padding:3px 10px; border-radius:999px; border:1px solid #ddd; background:#fafafa; font-size: 12px; color:#333; margin-left: 8px; }
+      .pill { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; border:1px solid #ddd; background:#fafafa; font-size: 12px; color:#333; margin-left: 0; }
       .tip { margin-top: 6px; }
       details { border:1px solid #eee; border-radius:14px; padding:10px 12px; background:#fff; }
       summary { cursor:pointer; font-weight:700; }
@@ -987,6 +987,10 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       /* ETA: keep icon + text on one line (robust) */
       .pill-eta { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-wrap:nowrap; }
       .pill-eta > * { display:inline-block; vertical-align:middle; line-height:1; }
+
+      /* Objectifs: align content exactly under header */
+      .objwrap { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; justify-content:flex-start; }
+
 </style>
     """
     poll_ms = int(CONFIG.get("web", {}).get("poll_state_ms", 1000))
