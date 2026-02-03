@@ -940,16 +940,13 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       .card input { padding:8px 10px; border-radius:10px; border:1px solid #ddd; min-width: 170px; }
       .card button { padding:9px 12px; border-radius:12px; border:1px solid #111; background:#111; color:#fff; cursor:pointer; }
       table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-      /* Mission table layout (A): tighten Départ/Destination, keep Objectifs on one line */
+      /* Mission table layout (B): tighter columns + objectifs can wrap nicely */
       table.missiontbl { table-layout: fixed; width: 100%; }
       table.missiontbl th, table.missiontbl td { vertical-align: middle; }
       table.missiontbl th:nth-child(1), table.missiontbl td:nth-child(1) { width: 90px; }
-      table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2) { width: 24%; padding-right: 6px; }
-      table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3) { width: 24%; padding-left: 6px; }
+      table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2) { width: 25%; padding-right: 6px; }
+      table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3) { width: 25%; padding-left: 6px; }
       table.missiontbl th:nth-child(4), table.missiontbl td:nth-child(4) { width: auto; padding-left: 10px; }
-      /* Keep ALL objective pills on one line; allow horizontal scroll if needed */
-      table.missiontbl td:nth-child(4) { white-space: nowrap; overflow-x: auto; }
-      table.missiontbl td:nth-child(4)::-webkit-scrollbar { height: 8px; }
 th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertical-align: top; }
       th { background: #f3f3f3; font-size: 13px; }
       td { font-size: 13px; }
@@ -988,8 +985,21 @@ th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertica
       .pill-eta { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-wrap:nowrap; }
       .pill-eta > * { display:inline-block; vertical-align:middle; line-height:1; }
 
-      /* Objectifs: align content exactly under header */
-      .objwrap { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; justify-content:flex-start; }
+      .objwrap { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-start; }
+      /* Each pill stays on one line internally (icon + text) */
+      .pill, .pill * { white-space: nowrap; }
+
+      /* Responsive tuning */
+      @media (max-width: 1200px){
+        table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2){ width: 23%; }
+        table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3){ width: 23%; }
+        .pill { padding:3px 8px; font-size: 11px; }
+      }
+      @media (max-width: 950px){
+        table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2){ width: 20%; }
+        table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3){ width: 20%; }
+        .pill { padding:2px 7px; font-size: 11px; }
+      }
 
 </style>
     """
