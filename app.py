@@ -277,14 +277,16 @@ def get_travel_minutes(dep: str, dst: str) -> Optional[int]:
     return _TRAVEL_MINUTES.get((dep_n, dst_n))
 
 def add_minutes_to_hhmmss(hhmmss: str, minutes: int) -> str:
+    """Add minutes to an HH:MM:SS time string, preserving seconds."""
     try:
         h, m, s = hhmmss.split(":")
-        base = int(h) * 60 + int(m)
-        total = base + int(minutes)
-        total = total % (24 * 60)
-        hh = total // 60
-        mm = total % 60
-        return f"{hh:02d}:{mm:02d}:00"
+        base_seconds = int(h) * 3600 + int(m) * 60 + int(s)
+        total = base_seconds + int(minutes) * 60
+        total = total % (24 * 3600)
+        hh = total // 3600
+        mm = (total % 3600) // 60
+        ss = total % 60
+        return f"{hh:02d}:{mm:02d}:{ss:02d}"
     except Exception:
         return ""
 
@@ -940,21 +942,42 @@ def _html_shell(title: str, active: str, content: str, tip: str = "", current_si
       .card input { padding:8px 10px; border-radius:10px; border:1px solid #ddd; min-width: 170px; }
       .card button { padding:9px 12px; border-radius:12px; border:1px solid #111; background:#111; color:#fff; cursor:pointer; }
       table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-      /* Mission table layout (B): tighter columns + objectifs can wrap nicely */
+      /* Mission table layout: bring Destination closer and give more room to Objectifs */
       table.missiontbl { table-layout: fixed; width: 100%; }
       table.missiontbl th, table.missiontbl td { vertical-align: middle; }
       table.missiontbl th:nth-child(1), table.missiontbl td:nth-child(1) { width: 90px; }
-      table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2) { width: 25%; padding-right: 6px; }
-      table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3) { width: 25%; padding-left: 6px; }
-      table.missiontbl th:nth-child(4), table.missiontbl td:nth-child(4) { width: auto; padding-left: 10px; }
-th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertical-align: top; }
+      table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2) { width: 28%; padding-right: 8px; }
+      table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3) { width: 28%; padding-left: 8px; }
+      table.missiontbl th:nth-child(4), table.missiontbl td:nth-child(4) { width: auto; }
+
+      /* Center headers + cells (titles and content) */
+      table.missiontbl th, table.missiontbl td { text-align: center; vertical-align: middle; }
+      table.missiontbl th { white-space: nowrap; }
+
+      /* Station names: keep on one line by default, wrap only when tight */
+      table.missiontbl td:nth-child(2),
+      table.missiontbl td:nth-child(3) { white-space: nowrap; }
+      @media (max-width: 920px){
+        table.missiontbl td:nth-child(2),
+        table.missiontbl td:nth-child(3) { white-space: normal; overflow-wrap:anywhere; word-break: break-word; }
+      }
+
+      /* Objectives pills: keep on one line as long as possible, wrap only when tight */
+      .objwrap{ display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap: nowrap; }
+      .objwrap .pill{ white-space: nowrap; }
+      @media (max-width: 760px){
+        .objwrap{ flex-wrap: wrap; }
+      }
+
+
+      th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertical-align: top; }
       th { background: #f3f3f3; font-size: 13px; }
       td { font-size: 13px; }
       .err { color:#b00020; font-weight:700; margin-top: 12px; }
       .muted { color:#666; font-size: 12px; }
       .group { border:1px solid #eee; border-radius:16px; padding:12px; margin: 12px 0; background:#fff; }
       .group h3 { margin: 0 0 8px 0; font-size: 15px; }
-      .pill { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; border:1px solid #ddd; background:#fafafa; font-size: 12px; color:#333; margin-left: 0; }
+      .pill { display:inline-block; padding:3px 10px; border-radius:999px; border:1px solid #ddd; background:#fafafa; font-size: 12px; color:#333; margin-left: 8px; }
       .tip { margin-top: 6px; }
       details { border:1px solid #eee; border-radius:14px; padding:10px 12px; background:#fff; }
       summary { cursor:pointer; font-weight:700; }
@@ -984,23 +1007,6 @@ th, td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertica
       /* ETA: keep icon + text on one line (robust) */
       .pill-eta { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-wrap:nowrap; }
       .pill-eta > * { display:inline-block; vertical-align:middle; line-height:1; }
-
-      .objwrap { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:flex-start; }
-      /* Each pill stays on one line internally (icon + text) */
-      .pill, .pill * { white-space: nowrap; }
-
-      /* Responsive tuning */
-      @media (max-width: 1200px){
-        table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2){ width: 23%; }
-        table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3){ width: 23%; }
-        .pill { padding:3px 8px; font-size: 11px; }
-      }
-      @media (max-width: 950px){
-        table.missiontbl th:nth-child(2), table.missiontbl td:nth-child(2){ width: 20%; }
-        table.missiontbl th:nth-child(3), table.missiontbl td:nth-child(3){ width: 20%; }
-        .pill { padding:2px 7px; font-size: 11px; }
-      }
-
 </style>
     """
     poll_ms = int(CONFIG.get("web", {}).get("poll_state_ms", 1000))
@@ -1400,6 +1406,11 @@ def build_route_missions_by_shuttle(*, day: str, resa_rows: List[Dict[str, Any]]
     pick_pins: Dict[int, Dict[int, List[str]]] = {}
     drop_pins: Dict[int, Dict[int, List[str]]] = {}
 
+
+    # Pickups au tout début d'un run (i_dep==0) : ils ne sont jamais une "destination" dans le run,
+    # donc on les remappe ensuite sur la mission qui ARRIVE à la station de départ (souvent un repositionnement).
+    # Format: start_pickups[shuttle] = list of dicts {"station": str, "tmin": int, "pin": str}
+    start_pickups: Dict[Any, List[Dict[str, Any]]] = {}
     unmatched = 0
     for r in resa_rows:
         shuttle_id = r.get("shuttleId")
@@ -1446,14 +1457,26 @@ def build_route_missions_by_shuttle(*, day: str, resa_rows: List[Dict[str, Any]]
         pick_pins.setdefault(ridx, {})
         drop_pins.setdefault(ridx, {})
 
-        activity_pick[ridx][int(i_dep)] = activity_pick[ridx].get(int(i_dep), 0) + 1
+        # --- Pick/Drop unifié: toujours 1 pick + 1 drop par réservation ---
+        # Drop-off s'affiche sur la DESTINATION (i_arr)
         activity_drop[ridx][int(i_arr)] = activity_drop[ridx].get(int(i_arr), 0) + 1
 
         pin_label = str(r.get("_pin_label", "") or "")
-        if pin_label:
-            pick_pins[ridx].setdefault(int(i_dep), []).append(pin_label)
-            drop_pins[ridx].setdefault(int(i_arr), []).append(pin_label)
+        # Pickup s'affiche sur la DESTINATION qui correspond à la station de départ.
+        # Si i_dep==0 (début de run), cette station n'est jamais une destination dans le run :
+        # on stocke puis on remappe sur la mission qui ARRIVE à cette station (souvent repositionnement).
+        if int(i_dep) == 0:
+            start_pickups.setdefault(shuttle_id, []).append({"station": dep_name, "tmin": int(tmin), "pin": pin_label})
+        else:
+            activity_pick.setdefault(ridx, {})
+            pick_pins.setdefault(ridx, {})
+            activity_pick[ridx][int(i_dep)] = activity_pick[ridx].get(int(i_dep), 0) + 1
+            if pin_label:
+                pick_pins[ridx].setdefault(int(i_dep), []).append(pin_label)
 
+        # Pins drop toujours sur i_arr
+        if pin_label:
+            drop_pins[ridx].setdefault(int(i_arr), []).append(pin_label)
     missions_by_shuttle: Dict[Any, List[Dict[str, Any]]] = {}
     total_missions = 0
 
@@ -1542,10 +1565,15 @@ def build_route_missions_by_shuttle(*, day: str, resa_rows: List[Dict[str, Any]]
         pre_hhmm = f"{hh:02d}:{mm:02d}:00"
 
         ridx0 = int(meta["run_index"])
-        pu0 = int(activity_pick.get(ridx0, {}).get(0, 0))
-        do0 = int(activity_drop.get(ridx0, {}).get(0, 0))
-        pu_pins0 = pick_pins.get(ridx0, {}).get(0, [])
-        do_pins0 = drop_pins.get(ridx0, {}).get(0, [])
+        # Pré-service: objectifs affichés sur la DESTINATION (terminus).
+        run0 = next((r for r in runs if int(r.get("run_index", 0)) == ridx0), None)
+        i_term0 = index_in_run(run0, str(meta.get("terminus", "") or "")) if run0 is not None else None
+        if i_term0 is None:
+            i_term0 = 0
+        pu0 = int(activity_pick.get(ridx0, {}).get(int(i_term0), 0))
+        do0 = int(activity_drop.get(ridx0, {}).get(int(i_term0), 0))
+        pu_pins0 = pick_pins.get(ridx0, {}).get(int(i_term0), [])
+        do_pins0 = drop_pins.get(ridx0, {}).get(int(i_term0), [])
 
         m = {
             "heure": pre_hhmm,
@@ -1564,6 +1592,50 @@ def build_route_missions_by_shuttle(*, day: str, resa_rows: List[Dict[str, Any]]
             "is_pre_service": True,
         }
         missions_by_shuttle.setdefault(shuttle, []).append(m)
+
+
+    # --- Remap pickups at run start (i_dep==0) onto the mission that ARRIVES to the pickup station ---
+    # This makes pickups appear on the "repositionnement" line whose destination is the pickup station.
+    def _norm_loose(x: Any) -> str:
+        return _normalize_station_name_loose(x)
+
+    for sh, items in (start_pickups or {}).items():
+        ms = missions_by_shuttle.get(sh, [])
+        if not ms:
+            continue
+
+        by_to: Dict[str, List[Dict[str, Any]]] = {}
+        for mrec in ms:
+            by_to.setdefault(_norm_loose(mrec.get("to", "")), []).append(mrec)
+
+        for rec in items:
+            st_name = rec.get("station", "")
+            tmin = rec.get("tmin", None)
+            pin = str(rec.get("pin", "") or "")
+            key = _norm_loose(st_name)
+            cands = by_to.get(key, [])
+            if not cands:
+                continue
+
+            chosen = None
+            if isinstance(tmin, int):
+                prev = [x for x in cands if isinstance(x.get("heure_min"), int) and int(x.get("heure_min")) <= tmin]
+                if prev:
+                    chosen = max(prev, key=lambda x: int(x.get("heure_min", 0)))
+                else:
+                    chosen = min(cands, key=lambda x: abs(int(x.get("heure_min", 10**9)) - tmin))
+            else:
+                chosen = cands[0]
+
+            if chosen is None:
+                continue
+
+            chosen["pickup"] = int(chosen.get("pickup", 0) or 0) + 1
+            if pin:
+                lst = chosen.get("pickup_pins") or []
+                if pin not in lst:
+                    lst.append(pin)
+                chosen["pickup_pins"] = sort_pins_natural(lst)
 
     for sh, ms in missions_by_shuttle.items():
         ms.sort(key=lambda x: (x.get("heure_min", 10**9), x.get("run_index", 0), x.get("order", 0)))
